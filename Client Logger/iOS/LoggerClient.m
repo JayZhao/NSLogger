@@ -332,7 +332,7 @@ void LoggerStart(Logger *logger)
 	if (logger == NULL)
 		logger = LoggerGetDefaultLogger();
 
-	if (logger->workerThread == NULL)
+	if (logger && logger->workerThread == NULL)
 	{
 		// Start the work thread which performs the Bonjour search,
 		// connects to the logging service and forwards the logs
@@ -2152,10 +2152,16 @@ void LogMessageToF_va(Logger *logger, const char *filename, int lineNumber, cons
 
 void LogMessage(NSString *domain, int level, NSString *format, ...)
 {
-	va_list args;
-	va_start(args, format);
-	LogMessageTo_internal(NULL, NULL, 0, NULL, domain, level, format, args);
-	va_end(args);
+    //return;
+#ifdef ADHOC
+    if ([domain isEqualToString:@"App"] || [domain isEqualToString:@"Error"] || [domain isEqualToString:@"GoogleEngine"]) {
+    }
+#else
+    va_list args;
+    va_start(args, format);
+    LogMessageTo_internal(NULL, NULL, 0, NULL, domain, level, format, args);
+    va_end(args);
+#endif
 }
 
 void LogMessageF(const char *filename, int lineNumber, const char *functionName, NSString *domain, int level, NSString *format, ...)
@@ -2240,7 +2246,7 @@ void LogEndBlockTo(Logger *logger)
 		LoggerStart(logger);
 	}
 
-	if (logger->options & kLoggerOption_LogToConsole)
+	if (logger && logger->options & kLoggerOption_LogToConsole)
 		return;
 	
 	int32_t seq = OSAtomicIncrement32Barrier(&logger->messageSeq);
@@ -2288,7 +2294,9 @@ void LogMarkerTo(Logger *logger, NSString *text)
 			CFStringRef str = CFDateFormatterCreateStringWithAbsoluteTime(NULL, df, CFAbsoluteTimeGetCurrent());
 			CFRelease(df);
 			LoggerMessageAddString(encoder, str, PART_KEY_MESSAGE);
-			CFRelease(str);
+            if (str) {
+                CFRelease(str);
+            }
 		}
 		else
 		{
